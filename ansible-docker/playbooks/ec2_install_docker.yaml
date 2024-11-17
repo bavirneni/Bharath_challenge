@@ -44,6 +44,17 @@
         name: docker
         state: started
         enabled: yes
+    
+    - name: Check if Docker Swarm is initialized
+      shell: |
+          docker info | grep -i "Swarm: active"
+      register: swarm_check
+      ignore_errors: yes
+
+    - name: Install Docker swarm
+      shell: sudo docker swarm init
+      when: swarm_check.rc != 0
+
 
     # Step 8: Test Docker installation
     - name: Verify Docker installation
@@ -54,3 +65,5 @@
     - name: Show Docker version
       debug:
         msg: "Docker version is: {{ docker_version.stdout }}"
+
+  
