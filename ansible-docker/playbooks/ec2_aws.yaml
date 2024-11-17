@@ -1,0 +1,103 @@
+- name: Create security group and launch EC2 instance
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    
+    
+    - name: Create a new key pair
+      amazon.aws.ec2_key:
+        name: "abk-key-pair"  # Replace with your desired key pair name
+        region: us-east-1  # Replace with the desired AWS region
+        state: present  # Set to 'absent' to delete the key pair
+      register: "abk_key_pair"
+
+    - name: Save KEY file to local
+      copy:
+        content: "{{ abk_key_pair.key.private_key }}"
+        dest: "/ansible/inventory/abk-key-pair.pem"  # Change this path to the mounted host path
+        mode: '0600'
+      when: abk_key_pair is defined
+
+    - name: Print Key instance details
+      debug:
+        var: abk_key_pair
+
+    - name: Create a security group
+      amazon.aws.ec2_group:
+        name: abk-security-group
+        description: Security group for Ansible-created EC2 instance
+        region: us-east-1  # Replace with your desired region
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 8080
+            to_port: 8080
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 443
+            to_port: 443
+            cidr_ip: 0.0.0.0/0
+      register: sg_info
+
+    - name: Create an EC2 instance
+      amazon.aws.ec2_instance:
+        region: us-east-1
+        name: abk-ec2
+        instance_type: "t2.micro"
+        key_name: "{{ abk_key_pair.key.name }}"  # Replace with your key pair name
+        image_id: "ami-0866a3c8686eaeeba"  # Replace with your desired AMI ID
+        security_groups:
+          - "{{ sg_info.group_name }}"
+        tags:
+          Name: abk_ec2_test
+      register: ec2_info
+
+    - name: Print Key instance details
+      debug:
+        var: ec2_info
+    
+    - name: Wait for SSH to be available on EC2 instance
+      ansible.builtin.wait_for:
+        host: "{{ ec2_info.instances[0].public_ip_address }}"
+        port: 22
+        timeout: 300
+        state: started
+
+    - name: Add EC2 instance to Ansible inventory file
+      add_host:
+        name: "{{ ec2_info.instances[0].public_ip_address }}"
+        ansible_host: "{{ ec2_info.instances[0].public_ip_address }}"
+        ansible_user: ubuntu  # Replace with the appropriate SSH user
+        ansible_ssh_private_key_file: "/ansible/inventory/abk-key-pair.pem"  # Replace with path to your private key
+        ansible_python_interpreter: "/usr/bin/python3"
+      register: added_instance
+
+    - name: Save EC2 inventory file
+      copy:
+        content: |
+          [ec2_instances]
+          {{ ec2_info.instances[0].public_ip_address }} ansible_host={{ ec2_info.instances[0].public_ip_address }} ansible_user=ubuntu ansible_ssh_private_key_file=/ansible/inventory/abk-key-pair.pem
+          
+          [ec2_instances:vars]
+          ansible_python_interpreter=/usr/bin/python3
+        dest: "/ansible/inventory/ec2_inventory.ini"
+      when: added_instance is defined
+
+   
+    - name: Ensure OpenSSL is installed
+      package:
+        name: openssl
+        state: present
+
+    - name: Generate a self-signed certificate
+      shell: |
+        sudo openssl genpkey -algorithm RSA -out /web-server-config/web-contianer/ssl-key/privkey.pem
+        sudo openssl req -new -x509 -key /web-server-config/web-contianer/ssl-key/privkey.pem -out /web-server-config/web-contianer/ssl-key/selfsigned.crt -days 3650 -subj "/C=US/ST=State/L=City/O=MyOrganization/OU=IT/CN={{ ec2_info.instances[0].public_ip_address }}"
+        sudo cat /web-server-config/web-contianer/ssl-key/selfsigned.crt /web-server-config/web-contianer/ssl-key/selfsigned.crt > /web-server-config/web-contianer/ssl-key/fullchain.pem

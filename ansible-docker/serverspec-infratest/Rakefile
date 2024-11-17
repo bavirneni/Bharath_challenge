@@ -1,0 +1,10 @@
+require 'rake'
+require 'rspec/core/rake_task'
+
+# Define a Rake task to run Serverspec tests
+desc "Run Serverspec tests"
+RSpec::Core::RakeTask.new(:spec) do |t|
+  t.pattern = 'spec/*_spec.rb' # Adjust the pattern if needed
+end
+
+task default: :spec

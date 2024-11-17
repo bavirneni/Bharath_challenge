@@ -1,0 +1,56 @@
+---
+- name: Install Docker on Ubuntu EC2 instance
+  hosts: ec2_instances  # This refers to your EC2 inventory group
+  become: yes
+  tasks:
+
+    # Step 1: Update apt package list
+    - name: Update apt package index
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    # Step 2: Install required dependencies
+    - name: Install required dependencies for Docker
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    # Step 3: Add Docker's official GPG key
+    - name: Add Docker's official GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    # Step 4: Add Docker repository to apt sources
+    - name: Add Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release | lower }} stable"
+        state: present
+
+    # Step 5: Install Docker
+    - name: Install Docker
+      ansible.builtin.apt:
+        name: docker-ce
+        state: present
+
+    # Step 6: Start Docker service
+    - name: Start Docker service
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # Step 8: Test Docker installation
+    - name: Verify Docker installation
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Show Docker version
+      debug:
+        msg: "Docker version is: {{ docker_version.stdout }}"

@@ -1,0 +1,25 @@
+---
+- name: Deploy Web server contianer on EC2 instance
+  hosts: ec2_instances  # This refers to your EC2 inventory group
+  become: yes
+  tasks:
+
+    - name: Configure Nginx for SSL
+      template:
+        src: /web-server-config/web-contianer/nginx.conf.j2
+        dest: /tmp/nginx.conf
+        mode: '0777'
+        remote_src: no
+
+    - name: Copy an entire directory to remote server
+      ansible.builtin.copy:
+        src: /web-server-config/ # Local directory path
+        dest: /web-server-config/ # Remote directory path
+        mode: '0755'
+        #recurse: yes
+    - name: create docker image 
+      shell: |
+        cd /web-server-config/web-contianer
+        sudo cp /tmp/nginx.conf nginx.conf
+        sudo docker build -t nginx_image .
+        docker run -d -p 8080:80 -p 443:443 --name abk_app nginx_image:latest
