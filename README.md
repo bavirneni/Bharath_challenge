@@ -6,6 +6,10 @@
 
 steps 
 
+# Update aws cred file
+
+  update the aws-cli/.aws/config and credentials file with right AWS user  details
+
 1. Run the following commands
  ### Host the ansible contianer to run the configuration playbooks
     cd ansible-docker
