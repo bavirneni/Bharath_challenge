@@ -19,8 +19,12 @@ steps
      ansible-playbooks ec2_aws.yaml   ### To host the Ec2 and create the cert as well as Inv file for next playbooks
      ansible-playbooks -i /ansible/inventory/ec2_inventory.ini ec2_install_docker.yaml ## To Install Docker service on Ec2 
      ansible-playbooks -i /ansible/inventory/ec2_inventory.ini ec2_deploy_web.yaml   ## Install Web server as Docker container ( so it will be easy to scaleup the service )
+   
+  # Validate the Server infra by using the serverSpec 
 
-
+     docker build -t serverspec-test serverspec-infratest/.
+     docker run -it --rm  -v ${pwd}/serverspec-infratest:/serverspec   -v ${pwd}/inventory/abk-key-pair.pem:/root/.ssh/private_key.pem  -e TARGET_HOST=<Ec2 Public IP >  serverspec-test
+     
   ## Access the Web page from system URL 
 
     http://<Ec2_public_IP>:8080 ## this is redirect to https://
