@@ -3,14 +3,14 @@
 # Prerequisites 
 1. Docker Desktop must be installed
 2. Need AWS acc key and ID with required Ec2 full access role attached
+3.  update the aws-cli/.aws/config and credentials file with right AWS user  details
 
 steps 
 
-# Update aws cred file
 
-  update the aws-cli/.aws/config and credentials file with right AWS user  details
 
 1. Run the following commands
+   
  ### Host the ansible contianer to run the configuration playbooks
     cd ansible-docker
     docker build -t ansible-container . ### it will create the ansible image 
