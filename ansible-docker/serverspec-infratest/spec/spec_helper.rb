@@ -10,7 +10,7 @@ options = {
   verify_host_key: :never # Optionally disable host key verification for simplicity
 }
 
-host = ENV['TARGET_HOST'] || '34.205.159.6'
+host = ENV['TARGET_HOST']
 
 set :host, host
 set :ssh_options, options
